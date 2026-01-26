@@ -23,3 +23,12 @@ verify_jwt = false
 
 [functions.booking-cancel]
 verify_jwt = false
+
+[functions.vapi-connect]
+verify_jwt = false
+
+[functions.vapi-sync-calls]
+verify_jwt = false
+
+[functions.vapi-status]
+verify_jwt = false

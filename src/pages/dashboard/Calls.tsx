@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useCustomAuth';
+import { useVapiStatus } from '@/hooks/useVapiStatus';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,10 +21,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Phone, PhoneIncoming, PhoneOutgoing, X } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Search, Phone, PhoneIncoming, PhoneOutgoing, X, RefreshCw, Settings, Loader2, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { OUTCOME_COLORS, STATUS_COLORS } from '@/lib/constants';
+import { toast } from 'sonner';
 
 interface Call {
   id: string;
@@ -41,10 +44,12 @@ interface Call {
 }
 
 export default function Calls() {
-  const { user } = useAuth();
+  const { user, isOwnerOrAdmin } = useAuth();
   const navigate = useNavigate();
+  const { connected: vapiConnected, loading: vapiStatusLoading, refetch: refetchVapiStatus } = useVapiStatus();
   const [calls, setCalls] = useState<Call[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [search, setSearch] = useState('');
   const [outcomeFilter, setOutcomeFilter] = useState<string>('all');
   const [directionFilter, setDirectionFilter] = useState<string>('all');
@@ -99,12 +104,71 @@ export default function Calls() {
 
   const hasFilters = search || outcomeFilter !== 'all' || directionFilter !== 'all';
 
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Not authenticated');
+        return;
+      }
+
+      const response = await supabase.functions.invoke('vapi-sync-calls', {
+        body: { days: 7 },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (response.data?.ok) {
+        toast.success(`Synced ${response.data.total} calls`);
+        await fetchCalls();
+        refetchVapiStatus();
+      } else {
+        toast.error(response.data?.message || 'Failed to sync calls');
+      }
+    } catch (error) {
+      console.error('Error syncing calls:', error);
+      toast.error('Failed to sync calls');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const formatDuration = (seconds: number | null) => {
     if (seconds === null) return '-';
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${minutes}:${String(secs).padStart(2, '0')}`;
   };
+
+  // Show connect prompt if Vapi is not connected
+  if (!vapiStatusLoading && !vapiConnected) {
+    return (
+      <div className="space-y-6 fade-in">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Calls</h1>
+            <p className="text-muted-foreground mt-1">View and analyze all voice calls</p>
+          </div>
+        </div>
+
+        {/* Connect Vapi Card */}
+        <Card className="glass-card p-8 text-center">
+          <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Connect Vapi to View Calls</h2>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            To sync and view your call data, connect your Vapi account in Settings.
+          </p>
+          <Link to="/dashboard/settings">
+            <Button className="btn-glow">
+              <Settings className="w-4 h-4 mr-2" />
+              Go to Settings
+            </Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 fade-in">
@@ -114,6 +178,20 @@ export default function Calls() {
           <h1 className="text-2xl font-bold text-foreground">Calls</h1>
           <p className="text-muted-foreground mt-1">View and analyze all voice calls</p>
         </div>
+        {isOwnerOrAdmin && (
+          <Button
+            variant="outline"
+            onClick={handleSync}
+            disabled={syncing}
+          >
+            {syncing ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            Sync Now
+          </Button>
+        )}
       </div>
 
       {/* Filters */}

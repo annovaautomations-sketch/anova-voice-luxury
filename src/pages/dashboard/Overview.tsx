@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Phone, Calendar, TrendingUp, Clock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Phone, Calendar, TrendingUp, Clock, AlertCircle, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useCustomAuth';
+import { useVapiStatus } from '@/hooks/useVapiStatus';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentCallsList } from '@/components/dashboard/RecentCallsList';
 import { OutcomeChart } from '@/components/dashboard/OutcomeChart';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { startOfDay, endOfDay, subDays } from 'date-fns';
 
 interface CallStats {
@@ -29,6 +33,7 @@ interface Call {
 
 export default function Overview() {
   const { user } = useAuth();
+  const { connected: vapiConnected, loading: vapiStatusLoading } = useVapiStatus();
   const [stats, setStats] = useState<CallStats>({
     callsToday: 0,
     bookedToday: 0,
@@ -133,6 +138,9 @@ export default function Overview() {
     return `${minutes}:${String(secs).padStart(2, '0')}`;
   };
 
+  // Show connect prompt banner if Vapi is not connected
+  const showConnectBanner = !vapiStatusLoading && !vapiConnected;
+
   return (
     <div className="space-y-8 fade-in">
       {/* Header */}
@@ -142,6 +150,26 @@ export default function Overview() {
           Welcome back, {user?.name?.split(' ')[0] || 'there'}
         </p>
       </div>
+
+      {/* Connect Vapi Banner */}
+      {showConnectBanner && (
+        <Card className="glass-card p-4 border-warning/30 bg-warning/5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-warning" />
+              <p className="text-sm text-muted-foreground">
+                Connect Vapi in Settings to sync your call data and populate the dashboard.
+              </p>
+            </div>
+            <Link to="/dashboard/settings">
+              <Button variant="outline" size="sm">
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
