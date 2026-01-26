@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { validateSupabaseEnv } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, AlertTriangle } from 'lucide-react';
 
 export default function Login() {
   const { user, loading, signInWithGoogle } = useAuth();
@@ -11,10 +12,20 @@ export default function Login() {
   const location = useLocation();
   const [error, setError] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [envError, setEnvError] = useState<string[] | null>(null);
 
   // Get the intended destination from location state or default to dashboard
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
 
+  // Check environment variables on mount
+  useEffect(() => {
+    const { valid, missing } = validateSupabaseEnv();
+    if (!valid) {
+      setEnvError(missing);
+    }
+  }, []);
+
+  // Redirect if already authenticated
   useEffect(() => {
     if (!loading && user) {
       navigate(from, { replace: true });
@@ -22,6 +33,11 @@ export default function Login() {
   }, [user, loading, navigate, from]);
 
   const handleGoogleSignIn = async () => {
+    if (envError) {
+      setError('Cannot sign in: Missing environment configuration');
+      return;
+    }
+    
     setError(null);
     setIsSigningIn(true);
     
@@ -31,14 +47,14 @@ export default function Login() {
       setError(error.message);
       setIsSigningIn(false);
     }
-    // Don't reset isSigningIn on success because we'll redirect
+    // Don't reset isSigningIn on success - we'll redirect via OAuth
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center emerald-glow">
+        <div className="flex flex-col items-center gap-4 fade-in">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center emerald-glow animate-pulse">
             <span className="text-primary font-bold text-2xl">A</span>
           </div>
           <Loader2 className="w-6 h-6 text-primary animate-spin" />
@@ -101,7 +117,7 @@ export default function Login() {
 
       {/* Right side - Login form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md fade-in">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center emerald-glow">
@@ -118,8 +134,18 @@ export default function Login() {
               </p>
             </div>
 
+            {/* Environment configuration warning */}
+            {envError && (
+              <Alert variant="destructive" className="mb-6 bg-destructive/10 border-destructive/30">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Configuration Error:</strong> Missing environment variables: {envError.join(', ')}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {error && (
-              <Alert variant="destructive" className="mb-6">
+              <Alert variant="destructive" className="mb-6 bg-destructive/10 border-destructive/30">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -127,8 +153,8 @@ export default function Login() {
 
             <Button
               onClick={handleGoogleSignIn}
-              disabled={isSigningIn}
-              className="w-full h-12 bg-card hover:bg-muted border border-border text-foreground gap-3"
+              disabled={isSigningIn || !!envError}
+              className="w-full h-12 bg-card hover:bg-muted border border-border text-foreground gap-3 transition-all duration-200"
             >
               {isSigningIn ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -162,7 +188,11 @@ export default function Login() {
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             New to ANOVA?{' '}
-            <button onClick={handleGoogleSignIn} disabled={isSigningIn} className="text-primary hover:underline">
+            <button 
+              onClick={handleGoogleSignIn} 
+              disabled={isSigningIn || !!envError} 
+              className="text-primary hover:underline disabled:opacity-50"
+            >
               Create an account
             </button>
           </p>
