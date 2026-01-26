@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useCustomAuth';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { NAV_ITEMS } from '@/lib/constants';
 import {
@@ -29,7 +29,7 @@ const iconMap = {
 
 export function Sidebar() {
   const location = useLocation();
-  const { profile, tenant, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { collapsed, toggle } = useSidebar();
 
   const isActive = (path: string) => {
@@ -98,10 +98,10 @@ export function Sidebar() {
         {!collapsed && (
           <div className="mb-3">
             <p className="text-sm font-medium text-sidebar-accent-foreground truncate">
-              {profile?.display_name || profile?.email}
+              {user?.name || user?.email}
             </p>
             <p className="text-xs text-muted-foreground truncate">
-              {tenant?.name}
+              {user?.tenant_name}
             </p>
           </div>
         )}

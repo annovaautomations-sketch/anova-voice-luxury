@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Phone, Calendar, TrendingUp, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useCustomAuth';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentCallsList } from '@/components/dashboard/RecentCallsList';
 import { OutcomeChart } from '@/components/dashboard/OutcomeChart';
-import { startOfDay, endOfDay, subDays, format } from 'date-fns';
+import { startOfDay, endOfDay, subDays } from 'date-fns';
 
 interface CallStats {
   callsToday: number;
@@ -28,7 +28,7 @@ interface Call {
 }
 
 export default function Overview() {
-  const { profile, tenant } = useAuth();
+  const { user } = useAuth();
   const [stats, setStats] = useState<CallStats>({
     callsToday: 0,
     bookedToday: 0,
@@ -40,13 +40,13 @@ export default function Overview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (profile?.tenant_id) {
+    if (user?.tenant_id) {
       fetchDashboardData();
     }
-  }, [profile?.tenant_id]);
+  }, [user?.tenant_id]);
 
   const fetchDashboardData = async () => {
-    if (!profile?.tenant_id) return;
+    if (!user?.tenant_id) return;
 
     try {
       const today = new Date();
@@ -58,7 +58,7 @@ export default function Overview() {
       const { data: todayCalls, error: todayError } = await supabase
         .from('calls')
         .select('*')
-        .eq('tenant_id', profile.tenant_id)
+        .eq('tenant_id', user.tenant_id)
         .gte('started_at', startToday)
         .lte('started_at', endToday);
 
@@ -68,7 +68,7 @@ export default function Overview() {
       const { data: weekCalls, error: weekError } = await supabase
         .from('calls')
         .select('*')
-        .eq('tenant_id', profile.tenant_id)
+        .eq('tenant_id', user.tenant_id)
         .gte('started_at', start7d);
 
       if (weekError) throw weekError;
@@ -77,7 +77,7 @@ export default function Overview() {
       const { data: recent, error: recentError } = await supabase
         .from('calls')
         .select('*')
-        .eq('tenant_id', profile.tenant_id)
+        .eq('tenant_id', user.tenant_id)
         .order('started_at', { ascending: false })
         .limit(10);
 
@@ -139,7 +139,7 @@ export default function Overview() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Overview</h1>
         <p className="text-muted-foreground mt-1">
-          Welcome back, {profile?.display_name?.split(' ')[0] || 'there'}
+          Welcome back, {user?.name?.split(' ')[0] || 'there'}
         </p>
       </div>
 

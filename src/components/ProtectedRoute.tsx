@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useCustomAuth';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { user, profile, loading } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
 
   // Show loading state while checking auth
@@ -32,9 +32,9 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   }
 
   // Check role-based access if required
-  if (requiredRole && profile) {
+  if (requiredRole && user.role) {
     const roleHierarchy = ['VIEWER', 'AGENT', 'ADMIN', 'OWNER'];
-    const userRoleIndex = roleHierarchy.indexOf(profile.role);
+    const userRoleIndex = roleHierarchy.indexOf(user.role);
     const requiredRoleIndex = roleHierarchy.indexOf(requiredRole);
 
     if (userRoleIndex < requiredRoleIndex) {

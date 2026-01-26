@@ -3,11 +3,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider } from "@/hooks/useCustomAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import Login from "./pages/Login";
-import AuthCallback from "./pages/AuthCallback";
 import Overview from "./pages/dashboard/Overview";
 import Calls from "./pages/dashboard/Calls";
 import Assistants from "./pages/dashboard/Assistants";
@@ -38,7 +37,6 @@ function App() {
               {/* Public routes */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
 
               {/* Protected dashboard routes */}
               <Route

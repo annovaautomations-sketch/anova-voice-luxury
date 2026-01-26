@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useCustomAuth';
 import { Card } from '@/components/ui/card';
 import { StatCard } from '@/components/dashboard/StatCard';
 import {

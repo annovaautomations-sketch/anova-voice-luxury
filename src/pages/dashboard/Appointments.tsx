@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useCustomAuth';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from 'lucide-react';
@@ -9,17 +9,17 @@ import { cn } from '@/lib/utils';
 import { APPOINTMENT_STATUS_COLORS } from '@/lib/constants';
 
 export default function Appointments() {
-  const { profile, tenant } = useAuth();
+  const { user } = useAuth();
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (profile?.tenant_id) {
-      supabase.from('appointments').select('*').eq('tenant_id', profile.tenant_id)
+    if (user?.tenant_id) {
+      supabase.from('appointments').select('*').eq('tenant_id', user.tenant_id)
         .order('start_iso', { ascending: false }).limit(50)
         .then(({ data }) => { setAppointments(data || []); setLoading(false); });
     }
-  }, [profile?.tenant_id]);
+  }, [user?.tenant_id]);
 
   return (
     <div className="space-y-6 fade-in">
