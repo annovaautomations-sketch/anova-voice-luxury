@@ -32,3 +32,9 @@ verify_jwt = false
 
 [functions.vapi-status]
 verify_jwt = false
+
+[functions.data-calls]
+verify_jwt = false
+
+[functions.data-integrations]
+verify_jwt = false

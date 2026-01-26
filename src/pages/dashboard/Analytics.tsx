@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useCustomAuth';
+import { useVapiStatus } from '@/hooks/useVapiStatus';
+import { useDataFetcher } from '@/hooks/useDataFetcher';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/dashboard/StatCard';
 import {
   Phone,
@@ -10,8 +13,9 @@ import {
   Clock,
   BarChart3,
   Loader2,
-  ArrowUpRight,
-  ArrowDownRight,
+  DollarSign,
+  Settings,
+  AlertCircle,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -27,7 +31,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { startOfDay, subDays, format, eachDayOfInterval } from 'date-fns';
+import { subDays, format, eachDayOfInterval, eachHourOfInterval, startOfDay, endOfDay } from 'date-fns';
 
 interface DailyStats {
   date: string;
@@ -36,10 +40,25 @@ interface DailyStats {
   avgDuration: number;
 }
 
+interface HourlyStats {
+  hour: string;
+  calls: number;
+}
+
 interface OutcomeData {
   name: string;
   value: number;
   color: string;
+}
+
+interface Call {
+  id: string;
+  started_at: string | null;
+  duration_sec: number | null;
+  outcome: string | null;
+  cost_total: number | null;
+  direction: string;
+  status: string;
 }
 
 const COLORS = {
@@ -50,39 +69,47 @@ const COLORS = {
 };
 
 export default function Analytics() {
-  const { user } = useAuth();
+  const { sessionId } = useAuth();
+  const { connected: vapiConnected, loading: vapiStatusLoading } = useVapiStatus();
+  const { fetchCalls } = useDataFetcher();
   const [loading, setLoading] = useState(true);
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
+  const [hourlyStats, setHourlyStats] = useState<HourlyStats[]>([]);
   const [outcomeData, setOutcomeData] = useState<OutcomeData[]>([]);
   const [totals, setTotals] = useState({
     totalCalls: 0,
-    totalBooked: 0,
+    totalCost: 0,
     avgBookRate: 0,
     avgDuration: 0,
     trend: 0,
   });
 
   useEffect(() => {
-    if (user?.tenant_id) {
+    if (sessionId) {
       fetchAnalytics();
     }
-  }, [user?.tenant_id]);
+  }, [sessionId]);
 
   const fetchAnalytics = async () => {
-    if (!user?.tenant_id) return;
-
     try {
       const endDate = new Date();
       const startDate = subDays(endDate, 30);
 
-      const { data: calls, error } = await supabase
-        .from('calls')
-        .select('*')
-        .eq('tenant_id', user.tenant_id)
-        .gte('started_at', startDate.toISOString())
-        .order('started_at', { ascending: true });
+      const result = await fetchCalls({
+        limit: 1000,
+        startDate: startDate.toISOString(),
+      });
 
-      if (error) throw error;
+      if (!result.ok) {
+        console.error('Failed to fetch analytics:', result.message);
+        setLoading(false);
+        return;
+      }
+
+      const calls = (result.calls as Call[]).sort((a, b) => {
+        if (!a.started_at || !b.started_at) return 0;
+        return new Date(a.started_at).getTime() - new Date(b.started_at).getTime();
+      });
 
       // Generate daily stats
       const days = eachDayOfInterval({ start: startDate, end: endDate });
@@ -92,7 +119,7 @@ export default function Analytics() {
         dailyMap.set(format(day, 'yyyy-MM-dd'), { calls: 0, booked: 0, durations: [] });
       });
 
-      calls?.forEach((call) => {
+      calls.forEach((call) => {
         if (!call.started_at) return;
         const dayKey = format(new Date(call.started_at), 'yyyy-MM-dd');
         const dayData = dailyMap.get(dayKey);
@@ -118,10 +145,36 @@ export default function Analytics() {
 
       setDailyStats(dailyStatsArray);
 
+      // Generate hourly stats (last 7 days)
+      const last7Days = calls.filter(c => 
+        c.started_at && new Date(c.started_at) >= subDays(endDate, 7)
+      );
+      
+      const hourlyMap = new Map<number, number>();
+      for (let i = 0; i < 24; i++) {
+        hourlyMap.set(i, 0);
+      }
+      
+      last7Days.forEach((call) => {
+        if (!call.started_at) return;
+        const hour = new Date(call.started_at).getHours();
+        hourlyMap.set(hour, (hourlyMap.get(hour) || 0) + 1);
+      });
+
+      const hourlyStatsArray: HourlyStats[] = [];
+      hourlyMap.forEach((count, hour) => {
+        hourlyStatsArray.push({
+          hour: `${hour.toString().padStart(2, '0')}:00`,
+          calls: count,
+        });
+      });
+      setHourlyStats(hourlyStatsArray);
+
       // Calculate totals
-      const totalCalls = calls?.length || 0;
-      const totalBooked = calls?.filter((c) => c.outcome === 'booked').length || 0;
-      const callsWithDuration = calls?.filter((c) => c.duration_sec && c.duration_sec > 0) || [];
+      const totalCalls = calls.length;
+      const totalCost = calls.reduce((acc, c) => acc + (c.cost_total || 0), 0);
+      const totalBooked = calls.filter((c) => c.outcome === 'booked').length;
+      const callsWithDuration = calls.filter((c) => c.duration_sec && c.duration_sec > 0);
       const avgDuration =
         callsWithDuration.length > 0
           ? Math.round(
@@ -131,12 +184,12 @@ export default function Analytics() {
           : 0;
 
       // Calculate 7-day trend
-      const last7 = calls?.filter((c) => c.started_at && new Date(c.started_at) >= subDays(endDate, 7)) || [];
-      const prev7 = calls?.filter((c) => {
+      const last7 = calls.filter((c) => c.started_at && new Date(c.started_at) >= subDays(endDate, 7));
+      const prev7 = calls.filter((c) => {
         if (!c.started_at) return false;
         const date = new Date(c.started_at);
         return date >= subDays(endDate, 14) && date < subDays(endDate, 7);
-      }) || [];
+      });
       
       const trend = prev7.length > 0 
         ? Math.round(((last7.length - prev7.length) / prev7.length) * 100) 
@@ -144,7 +197,7 @@ export default function Analytics() {
 
       setTotals({
         totalCalls,
-        totalBooked,
+        totalCost,
         avgBookRate: totalCalls > 0 ? Math.round((totalBooked / totalCalls) * 100) : 0,
         avgDuration,
         trend,
@@ -152,10 +205,10 @@ export default function Analytics() {
 
       // Calculate outcome distribution
       const outcomes = {
-        booked: calls?.filter((c) => c.outcome === 'booked').length || 0,
-        qualified: calls?.filter((c) => c.outcome === 'qualified').length || 0,
-        not_qualified: calls?.filter((c) => c.outcome === 'not_qualified').length || 0,
-        other: calls?.filter((c) => c.outcome === 'other' || !c.outcome).length || 0,
+        booked: calls.filter((c) => c.outcome === 'booked').length,
+        qualified: calls.filter((c) => c.outcome === 'qualified').length,
+        not_qualified: calls.filter((c) => c.outcome === 'not_qualified').length,
+        other: calls.filter((c) => c.outcome === 'other' || !c.outcome).length,
       };
 
       setOutcomeData([
@@ -176,6 +229,36 @@ export default function Analytics() {
     const secs = seconds % 60;
     return `${minutes}:${String(secs).padStart(2, '0')}`;
   };
+
+  const formatCost = (cost: number) => {
+    return `$${cost.toFixed(2)}`;
+  };
+
+  // Show connect prompt if Vapi is not connected
+  if (!vapiStatusLoading && !vapiConnected) {
+    return (
+      <div className="space-y-6 fade-in">
+        <div>
+          <h1 className="text-2xl font-bold">Analytics</h1>
+          <p className="text-muted-foreground mt-1">Performance overview for the last 30 days</p>
+        </div>
+
+        <Card className="glass-card p-8 text-center">
+          <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Connect Vapi to View Analytics</h2>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Analytics will populate once you connect your Vapi account and sync call data.
+          </p>
+          <Link to="/dashboard/settings">
+            <Button className="btn-glow">
+              <Settings className="w-4 h-4 mr-2" />
+              Go to Settings
+            </Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -210,9 +293,9 @@ export default function Analytics() {
           } : undefined}
         />
         <StatCard
-          title="Total Booked"
-          value={totals.totalBooked}
-          icon={<Calendar className="w-5 h-5" />}
+          title="Total Cost"
+          value={formatCost(totals.totalCost)}
+          icon={<DollarSign className="w-5 h-5" />}
         />
         <StatCard
           title="Book Rate"
@@ -234,7 +317,7 @@ export default function Analytics() {
           <h3 className="text-lg font-semibold mb-2">No data yet</h3>
           <p className="text-muted-foreground max-w-md mx-auto">
             Analytics will populate as your voice agents handle calls. 
-            Connect Vapi in Settings to start receiving call data.
+            Go to Settings to sync your Vapi call data.
           </p>
         </Card>
       ) : (
@@ -243,7 +326,7 @@ export default function Analytics() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Calls Over Time */}
             <Card className="glass-card p-6 lg:col-span-2">
-              <h3 className="font-semibold mb-4">Calls Over Time</h3>
+              <h3 className="font-semibold mb-4">Calls by Day</h3>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={dailyStats}>
@@ -326,7 +409,37 @@ export default function Analytics() {
             </Card>
           </div>
 
-          {/* Booking Trend */}
+          {/* Calls by Hour */}
+          <Card className="glass-card p-6">
+            <h3 className="font-semibold mb-4">Calls by Hour (Last 7 Days)</h3>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={hourlyStats}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(160, 20%, 12%)" />
+                  <XAxis
+                    dataKey="hour"
+                    stroke="hsl(150, 15%, 40%)"
+                    tick={{ fill: 'hsl(150, 15%, 60%)', fontSize: 10 }}
+                    interval={2}
+                  />
+                  <YAxis
+                    stroke="hsl(150, 15%, 40%)"
+                    tick={{ fill: 'hsl(150, 15%, 60%)', fontSize: 12 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(160, 20%, 4%)',
+                      border: '1px solid hsl(160, 20%, 12%)',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <Bar dataKey="calls" fill="hsl(200, 80%, 50%)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+
+          {/* Daily Bookings */}
           <Card className="glass-card p-6">
             <h3 className="font-semibold mb-4">Daily Bookings</h3>
             <div className="h-[200px]">

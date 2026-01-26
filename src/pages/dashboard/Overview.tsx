@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Phone, Calendar, TrendingUp, Clock, AlertCircle, Settings } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Phone, Calendar, TrendingUp, Clock, AlertCircle, Settings, DollarSign } from 'lucide-react';
 import { useAuth } from '@/hooks/useCustomAuth';
 import { useVapiStatus } from '@/hooks/useVapiStatus';
+import { useDataFetcher } from '@/hooks/useDataFetcher';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentCallsList } from '@/components/dashboard/RecentCallsList';
 import { OutcomeChart } from '@/components/dashboard/OutcomeChart';
@@ -13,8 +13,8 @@ import { startOfDay, endOfDay, subDays } from 'date-fns';
 
 interface CallStats {
   callsToday: number;
-  bookedToday: number;
-  bookRate7d: number;
+  totalCalls: number;
+  totalCost: number;
   avgDuration: number;
 }
 
@@ -29,15 +29,17 @@ interface Call {
   status: string;
   outcome: 'booked' | 'qualified' | 'not_qualified' | 'other' | null;
   summary: string | null;
+  cost_total: number | null;
 }
 
 export default function Overview() {
-  const { user } = useAuth();
+  const { user, sessionId } = useAuth();
   const { connected: vapiConnected, loading: vapiStatusLoading } = useVapiStatus();
+  const { fetchCalls } = useDataFetcher();
   const [stats, setStats] = useState<CallStats>({
     callsToday: 0,
-    bookedToday: 0,
-    bookRate7d: 0,
+    totalCalls: 0,
+    totalCost: 0,
     avgDuration: 0,
   });
   const [recentCalls, setRecentCalls] = useState<Call[]>([]);
@@ -45,77 +47,63 @@ export default function Overview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user?.tenant_id) {
+    if (sessionId) {
       fetchDashboardData();
     }
-  }, [user?.tenant_id]);
+  }, [sessionId]);
 
   const fetchDashboardData = async () => {
-    if (!user?.tenant_id) return;
-
     try {
       const today = new Date();
       const startToday = startOfDay(today).toISOString();
-      const endToday = endOfDay(today).toISOString();
       const start7d = subDays(today, 7).toISOString();
 
-      // Fetch calls for today
-      const { data: todayCalls, error: todayError } = await supabase
-        .from('calls')
-        .select('*')
-        .eq('tenant_id', user.tenant_id)
-        .gte('started_at', startToday)
-        .lte('started_at', endToday);
+      // Fetch all calls from last 7 days
+      const result = await fetchCalls({ 
+        limit: 500,
+        startDate: start7d,
+      });
 
-      if (todayError) throw todayError;
+      if (!result.ok) {
+        console.error('Failed to fetch calls:', result.message);
+        setLoading(false);
+        return;
+      }
 
-      // Fetch calls for last 7 days
-      const { data: weekCalls, error: weekError } = await supabase
-        .from('calls')
-        .select('*')
-        .eq('tenant_id', user.tenant_id)
-        .gte('started_at', start7d);
-
-      if (weekError) throw weekError;
-
-      // Fetch recent calls
-      const { data: recent, error: recentError } = await supabase
-        .from('calls')
-        .select('*')
-        .eq('tenant_id', user.tenant_id)
-        .order('started_at', { ascending: false })
-        .limit(10);
-
-      if (recentError) throw recentError;
+      const calls = result.calls as Call[];
+      
+      // Filter today's calls
+      const todayCalls = calls.filter(c => 
+        c.started_at && new Date(c.started_at) >= new Date(startToday)
+      );
 
       // Calculate stats
-      const callsToday = todayCalls?.length || 0;
-      const bookedToday = todayCalls?.filter(c => c.outcome === 'booked').length || 0;
+      const callsToday = todayCalls.length;
+      const totalCalls = calls.length;
       
-      const totalWeekCalls = weekCalls?.length || 0;
-      const bookedWeekCalls = weekCalls?.filter(c => c.outcome === 'booked').length || 0;
-      const bookRate7d = totalWeekCalls > 0 ? Math.round((bookedWeekCalls / totalWeekCalls) * 100) : 0;
+      const totalCost = calls.reduce((acc, c) => acc + (c.cost_total || 0), 0);
       
-      const callsWithDuration = weekCalls?.filter(c => c.duration_sec !== null && c.duration_sec > 0) || [];
+      const callsWithDuration = calls.filter(c => c.duration_sec !== null && c.duration_sec > 0);
       const avgDuration = callsWithDuration.length > 0
         ? Math.round(callsWithDuration.reduce((acc, c) => acc + (c.duration_sec || 0), 0) / callsWithDuration.length)
         : 0;
 
       setStats({
         callsToday,
-        bookedToday,
-        bookRate7d,
+        totalCalls,
+        totalCost,
         avgDuration,
       });
 
-      setRecentCalls((recent || []) as Call[]);
+      // Get recent calls (latest 10)
+      setRecentCalls(calls.slice(0, 10));
 
       // Calculate outcome distribution
       const outcomes = {
-        booked: weekCalls?.filter(c => c.outcome === 'booked').length || 0,
-        qualified: weekCalls?.filter(c => c.outcome === 'qualified').length || 0,
-        not_qualified: weekCalls?.filter(c => c.outcome === 'not_qualified').length || 0,
-        other: weekCalls?.filter(c => c.outcome === 'other').length || 0,
+        booked: calls.filter(c => c.outcome === 'booked').length,
+        qualified: calls.filter(c => c.outcome === 'qualified').length,
+        not_qualified: calls.filter(c => c.outcome === 'not_qualified').length,
+        other: calls.filter(c => c.outcome === 'other' || !c.outcome).length,
       };
 
       setOutcomeData([
@@ -136,6 +124,10 @@ export default function Overview() {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${minutes}:${String(secs).padStart(2, '0')}`;
+  };
+
+  const formatCost = (cost: number) => {
+    return `$${cost.toFixed(2)}`;
   };
 
   // Show connect prompt banner if Vapi is not connected
@@ -179,14 +171,14 @@ export default function Overview() {
           icon={<Phone className="w-5 h-5" />}
         />
         <StatCard
-          title="Booked Today"
-          value={stats.bookedToday}
+          title="Total Calls (7d)"
+          value={stats.totalCalls}
           icon={<Calendar className="w-5 h-5" />}
         />
         <StatCard
-          title="Book Rate (7d)"
-          value={`${stats.bookRate7d}%`}
-          icon={<TrendingUp className="w-5 h-5" />}
+          title="Total Cost (7d)"
+          value={formatCost(stats.totalCost)}
+          icon={<DollarSign className="w-5 h-5" />}
         />
         <StatCard
           title="Avg Duration"

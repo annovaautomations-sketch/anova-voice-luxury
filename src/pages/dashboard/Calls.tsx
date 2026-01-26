@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useCustomAuth';
 import { useVapiStatus } from '@/hooks/useVapiStatus';
+import { useDataFetcher } from '@/hooks/useDataFetcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -44,9 +44,10 @@ interface Call {
 }
 
 export default function Calls() {
-  const { user, isOwnerOrAdmin } = useAuth();
+  const { user, isOwnerOrAdmin, sessionId } = useAuth();
   const navigate = useNavigate();
   const { connected: vapiConnected, loading: vapiStatusLoading, refetch: refetchVapiStatus } = useVapiStatus();
+  const { fetchCalls, syncVapiCalls } = useDataFetcher();
   const [calls, setCalls] = useState<Call[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -55,26 +56,22 @@ export default function Calls() {
   const [directionFilter, setDirectionFilter] = useState<string>('all');
 
   useEffect(() => {
-    if (user?.tenant_id) {
-      fetchCalls();
+    if (sessionId) {
+      loadCalls();
     }
-  }, [user?.tenant_id]);
+  }, [sessionId]);
 
-  const fetchCalls = async () => {
-    if (!user?.tenant_id) return;
-
+  const loadCalls = async () => {
+    setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('calls')
-        .select('*')
-        .eq('tenant_id', user.tenant_id)
-        .order('started_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-      setCalls(data as Call[]);
+      const result = await fetchCalls({ limit: 100 });
+      if (result.ok) {
+        setCalls(result.calls as Call[]);
+      } else {
+        console.error('Failed to fetch calls:', result.message);
+      }
     } catch (error) {
-      console.error('Error fetching calls:', error);
+      console.error('Error loading calls:', error);
     } finally {
       setLoading(false);
     }
@@ -107,23 +104,13 @@ export default function Calls() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('Not authenticated');
-        return;
-      }
-
-      const response = await supabase.functions.invoke('vapi-sync-calls', {
-        body: { days: 7 },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-
-      if (response.data?.ok) {
-        toast.success(`Synced ${response.data.total} calls`);
-        await fetchCalls();
+      const result = await syncVapiCalls(7);
+      if (result?.ok) {
+        toast.success(`Synced ${result.total} calls`);
+        await loadCalls();
         refetchVapiStatus();
       } else {
-        toast.error(response.data?.message || 'Failed to sync calls');
+        toast.error(result?.message || 'Failed to sync calls');
       }
     } catch (error) {
       console.error('Error syncing calls:', error);
@@ -264,6 +251,7 @@ export default function Calls() {
                   <div className="flex flex-col items-center gap-2">
                     <Phone className="w-8 h-8 text-muted-foreground/50" />
                     <p className="text-muted-foreground">No calls found</p>
+                    <p className="text-sm text-muted-foreground">Click "Sync Now" to fetch your calls from Vapi</p>
                   </div>
                 </TableCell>
               </TableRow>

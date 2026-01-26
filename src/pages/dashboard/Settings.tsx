@@ -1,6 +1,5 @@
 import { useAuth } from '@/hooks/useCustomAuth';
 import { useIntegrations } from '@/hooks/useIntegrations';
-import { IntegrationCard } from '@/components/integrations/IntegrationCard';
 import { VapiIntegrationCard } from '@/components/integrations/VapiIntegrationCard';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,50 +13,39 @@ import {
   Globe,
   Mail,
   Loader2,
+  Calendar,
+  Mic,
+  Phone as PhoneIcon,
+  MessageSquare,
 } from 'lucide-react';
 
-// Integration configs - excluding Vapi since it has its own card
-const INTEGRATION_CONFIG = [
+// Future integrations (coming soon)
+const COMING_SOON_INTEGRATIONS = [
   {
-    provider: 'google_calendar' as const,
     name: 'Google Calendar',
     description: 'Sync appointments and bookings with your Google Calendar.',
-    requiresWebhookSecret: false,
-    docsUrl: 'https://developers.google.com/calendar',
+    icon: Calendar,
   },
   {
-    provider: 'openai' as const,
     name: 'OpenAI',
     description: 'GPT models for enhanced conversation understanding and summaries.',
-    requiresWebhookSecret: false,
-    docsUrl: 'https://platform.openai.com/docs',
+    icon: MessageSquare,
   },
   {
-    provider: 'openai' as const,
-    name: 'OpenAI',
-    description: 'GPT models for enhanced conversation understanding and summaries.',
-    requiresWebhookSecret: false,
-    docsUrl: 'https://platform.openai.com/docs',
-  },
-  {
-    provider: 'elevenlabs' as const,
     name: 'ElevenLabs',
     description: 'Natural voice synthesis for custom agent voices.',
-    requiresWebhookSecret: false,
-    docsUrl: 'https://elevenlabs.io/docs',
+    icon: Mic,
   },
   {
-    provider: 'twilio' as const,
     name: 'Twilio',
     description: 'Phone number provisioning and SMS capabilities.',
-    requiresWebhookSecret: true,
-    docsUrl: 'https://www.twilio.com/docs',
+    icon: PhoneIcon,
   },
 ];
 
 export default function Settings() {
   const { user, isOwnerOrAdmin } = useAuth();
-  const { isConnected, connectIntegration, disconnectIntegration, loading } = useIntegrations();
+  const { loading } = useIntegrations();
 
   return (
     <div className="space-y-8 fade-in">
@@ -93,22 +81,26 @@ export default function Settings() {
                 {/* Vapi Integration Card with sync capabilities */}
                 <VapiIntegrationCard isOwnerOrAdmin={isOwnerOrAdmin} />
                 
-                {/* Other integrations */}
-                {INTEGRATION_CONFIG.map((config) => (
-                  <IntegrationCard
-                    key={config.provider}
-                    provider={config.provider}
-                    name={config.name}
-                    description={config.description}
-                    isConnected={isConnected(config.provider)}
-                    onConnect={(apiKey, webhookSecret) => 
-                      connectIntegration(config.provider, apiKey, webhookSecret)
-                    }
-                    onDisconnect={() => disconnectIntegration(config.provider)}
-                    isOwnerOrAdmin={isOwnerOrAdmin}
-                    requiresWebhookSecret={config.requiresWebhookSecret}
-                    docsUrl={config.docsUrl}
-                  />
+                {/* Coming soon integrations */}
+                {COMING_SOON_INTEGRATIONS.map((integration) => (
+                  <Card key={integration.name} className="glass-card p-6 opacity-60">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-muted/50 text-muted-foreground">
+                        <integration.icon className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-foreground">{integration.name}</h3>
+                          <Badge variant="outline" className="text-xs text-muted-foreground">
+                            Coming Soon
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {integration.description}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
                 ))}
               </div>
             )}
