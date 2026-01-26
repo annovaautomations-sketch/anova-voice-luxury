@@ -21,31 +21,31 @@ type PhoneNumber = Database['public']['Tables']['phone_numbers']['Row'];
 type Assistant = Database['public']['Tables']['assistants']['Row'];
 
 export default function Numbers() {
-  const { profile, isOwnerOrAdmin } = useAuth();
+  const { user, isOwnerOrAdmin } = useAuth();
   const [numbers, setNumbers] = useState<PhoneNumber[]>([]);
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (profile?.tenant_id) {
+    if (user?.tenant_id) {
       fetchData();
     }
-  }, [profile?.tenant_id]);
+  }, [user?.tenant_id]);
 
   const fetchData = async () => {
-    if (!profile?.tenant_id) return;
+    if (!user?.tenant_id) return;
 
     try {
       const [numbersRes, assistantsRes] = await Promise.all([
         supabase
           .from('phone_numbers')
           .select('*')
-          .eq('tenant_id', profile.tenant_id)
+          .eq('tenant_id', user.tenant_id)
           .order('created_at', { ascending: false }),
         supabase
           .from('assistants')
           .select('*')
-          .eq('tenant_id', profile.tenant_id),
+          .eq('tenant_id', user.tenant_id),
       ]);
 
       if (numbersRes.error) throw numbersRes.error;

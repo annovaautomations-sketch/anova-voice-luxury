@@ -54,7 +54,7 @@ const INTEGRATION_CONFIG = [
 ];
 
 export default function Settings() {
-  const { profile, tenant, isOwnerOrAdmin, user } = useAuth();
+  const { user, isOwnerOrAdmin } = useAuth();
   const { isConnected, connectIntegration, disconnectIntegration, loading } = useIntegrations();
 
   return (
@@ -130,8 +130,8 @@ export default function Settings() {
                   <Building2 className="w-8 h-8 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold">{tenant?.name || 'Loading...'}</h3>
-                  <p className="text-sm text-muted-foreground">/{tenant?.slug}</p>
+                  <h3 className="text-xl font-semibold">{user?.tenant_name || 'Loading...'}</h3>
+                  <p className="text-sm text-muted-foreground">Workspace</p>
                 </div>
               </div>
 
@@ -142,17 +142,12 @@ export default function Settings() {
                   <p className="text-sm text-muted-foreground mb-1">Timezone</p>
                   <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-foreground">{tenant?.timezone || 'America/Toronto'}</span>
+                    <span className="text-foreground">America/Toronto</span>
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Created</p>
-                  <span className="text-foreground">
-                    {tenant?.created_at 
-                      ? new Date(tenant.created_at).toLocaleDateString() 
-                      : 'N/A'
-                    }
-                  </span>
+                  <p className="text-sm text-muted-foreground mb-1">Status</p>
+                  <span className="text-foreground">Active</span>
                 </div>
               </div>
 
@@ -180,20 +175,20 @@ export default function Settings() {
                   <Users className="w-6 h-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium">{profile?.display_name || profile?.email}</p>
-                  <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                  <p className="font-medium">{user?.name || user?.email}</p>
+                  <p className="text-sm text-muted-foreground">{user?.email}</p>
                 </div>
                 <Badge 
                   variant="outline" 
                   className={
-                    profile?.role === 'OWNER' 
+                    user?.role === 'OWNER' 
                       ? 'border-primary/30 bg-primary/10 text-primary' 
-                      : profile?.role === 'ADMIN'
+                      : user?.role === 'ADMIN'
                       ? 'border-info/30 bg-info/10 text-info'
                       : 'border-border bg-muted text-muted-foreground'
                   }
                 >
-                  {profile?.role}
+                  {user?.role}
                 </Badge>
               </div>
             </Card>
@@ -251,10 +246,10 @@ export default function Settings() {
             <Card className="glass-card p-6 space-y-6">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-2xl font-bold text-muted-foreground">
-                  {profile?.display_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
+                  {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold">{profile?.display_name || 'User'}</h3>
+                  <h3 className="text-xl font-semibold">{user?.name || 'User'}</h3>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Mail className="w-4 h-4" />
                     <span>{user?.email}</span>
