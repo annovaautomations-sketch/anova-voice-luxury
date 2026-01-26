@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { NAV_ITEMS } from '@/lib/constants';
 import {
   LayoutDashboard,
@@ -15,7 +16,6 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
 
 const iconMap = {
   LayoutDashboard,
@@ -30,7 +30,7 @@ const iconMap = {
 export function Sidebar() {
   const location = useLocation();
   const { profile, tenant, signOut } = useAuth();
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, toggle } = useSidebar();
 
   const isActive = (path: string) => {
     if (path === '/dashboard') {
@@ -50,7 +50,7 @@ export function Sidebar() {
       <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
         {!collapsed && (
           <Link to="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center emerald-glow">
               <span className="text-primary font-bold text-lg">A</span>
             </div>
             <span className="font-semibold text-sidebar-accent-foreground">ANOVA</span>
@@ -59,8 +59,11 @@ export function Sidebar() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-          onClick={() => setCollapsed(!collapsed)}
+          className={cn(
+            "h-8 w-8 text-muted-foreground hover:text-foreground",
+            collapsed && "mx-auto"
+          )}
+          onClick={toggle}
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>

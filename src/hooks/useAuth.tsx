@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface UserProfile {
   id: string;
@@ -41,16 +42,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (event, currentSession) => {
+        if (!mounted) return;
+        
+        console.log('Auth state changed:', event);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
         
         // Defer fetching profile to avoid deadlock
-        if (session?.user) {
+        if (currentSession?.user) {
           setTimeout(() => {
-            fetchUserProfile(session.user.id);
+            if (mounted) {
+              fetchUserProfile(currentSession.user.id);
+            }
           }, 0);
         } else {
           setProfile(null);
@@ -61,17 +69,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserProfile(session.user.id);
+    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      if (!mounted) return;
+      
+      setSession(existingSession);
+      setUser(existingSession?.user ?? null);
+      
+      if (existingSession?.user) {
+        fetchUserProfile(existingSession.user.id);
       } else {
         setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
@@ -104,6 +118,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (tenantData) {
           setTenant(tenantData as Tenant);
         }
+      } else {
+        // No profile exists yet - user might be new
+        // The database trigger should create this, but we wait a moment and retry
+        console.log('No profile found, waiting for trigger to create one...');
+        setTimeout(async () => {
+          const { data: retryData } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('user_id', userId)
+            .maybeSingle();
+          
+          if (retryData) {
+            setProfile(retryData as UserProfile);
+            
+            const { data: retryTenant } = await supabase
+              .from('tenants')
+              .select('*')
+              .eq('id', retryData.tenant_id)
+              .maybeSingle();
+            
+            if (retryTenant) {
+              setTenant(retryTenant as Tenant);
+            }
+          }
+          setLoading(false);
+        }, 1000);
+        return;
       }
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
@@ -113,12 +154,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    const redirectUrl = `${window.location.origin}/dashboard`;
+    // Use the origin for redirect to handle both preview and production URLs
+    const redirectUrl = `${window.location.origin}/auth/callback`;
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       },
     });
     
@@ -126,11 +172,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    setLoading(true);
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
     setProfile(null);
     setTenant(null);
+    setLoading(false);
   };
 
   const isOwnerOrAdmin = profile?.role === 'OWNER' || profile?.role === 'ADMIN';

@@ -1,21 +1,25 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 export default function Login() {
   const { user, loading, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [error, setError] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
 
+  // Get the intended destination from location state or default to dashboard
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
+
   useEffect(() => {
     if (!loading && user) {
-      navigate('/dashboard');
+      navigate(from, { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, from]);
 
   const handleGoogleSignIn = async () => {
     setError(null);
@@ -27,15 +31,17 @@ export default function Login() {
       setError(error.message);
       setIsSigningIn(false);
     }
+    // Don't reset isSigningIn on success because we'll redirect
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center emerald-glow">
             <span className="text-primary font-bold text-2xl">A</span>
           </div>
+          <Loader2 className="w-6 h-6 text-primary animate-spin" />
         </div>
       </div>
     );
@@ -98,7 +104,7 @@ export default function Login() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center emerald-glow">
               <span className="text-primary font-bold text-xl">A</span>
             </div>
             <span className="font-bold text-xl text-foreground">ANOVA Voice Portal</span>
@@ -125,7 +131,7 @@ export default function Login() {
               className="w-full h-12 bg-card hover:bg-muted border border-border text-foreground gap-3"
             >
               {isSigningIn ? (
-                <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path
@@ -156,7 +162,7 @@ export default function Login() {
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             New to ANOVA?{' '}
-            <button onClick={handleGoogleSignIn} className="text-primary hover:underline">
+            <button onClick={handleGoogleSignIn} disabled={isSigningIn} className="text-primary hover:underline">
               Create an account
             </button>
           </p>
