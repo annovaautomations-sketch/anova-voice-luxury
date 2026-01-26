@@ -1,125 +1,61 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useCustomAuth';
 import { toast } from 'sonner';
-import type { Database } from '@/integrations/supabase/types';
 
-type Integration = Database['public']['Tables']['integrations']['Row'];
-type IntegrationProvider = Database['public']['Enums']['integration_provider'];
+interface Integration {
+  id: string;
+  provider: 'vapi' | 'google_calendar' | 'openai' | 'elevenlabs' | 'twilio';
+  status: 'connected' | 'disconnected';
+  last_synced_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export function useIntegrations() {
-  const { user, isOwnerOrAdmin } = useAuth();
+  const { sessionId, isOwnerOrAdmin } = useAuth();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchIntegrations = async () => {
-    if (!user?.tenant_id) return;
+  const fetchIntegrations = useCallback(async () => {
+    if (!sessionId) {
+      setLoading(false);
+      return;
+    }
 
     try {
-      const { data, error } = await supabase
-        .from('integrations')
-        .select('*')
-        .eq('tenant_id', user.tenant_id);
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/data-integrations`, {
+        method: 'GET',
+        headers: {
+          'x-session-id': sessionId,
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (error) throw error;
-      setIntegrations(data || []);
+      const data = await response.json();
+      if (data.ok) {
+        setIntegrations(data.integrations || []);
+      } else {
+        console.error('Failed to fetch integrations:', data.message);
+      }
     } catch (error) {
       console.error('Error fetching integrations:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [sessionId]);
 
   useEffect(() => {
-    if (user?.tenant_id) {
-      fetchIntegrations();
-    }
-  }, [user?.tenant_id]);
+    fetchIntegrations();
+  }, [fetchIntegrations]);
 
-  const getIntegration = (provider: IntegrationProvider): Integration | undefined => {
+  const getIntegration = (provider: Integration['provider']): Integration | undefined => {
     return integrations.find((i) => i.provider === provider);
   };
 
-  const isConnected = (provider: IntegrationProvider): boolean => {
+  const isConnected = (provider: Integration['provider']): boolean => {
     const integration = getIntegration(provider);
     return integration?.status === 'connected';
-  };
-
-  const connectIntegration = async (provider: IntegrationProvider, apiKey: string, webhookSecret?: string) => {
-    if (!user?.tenant_id || !isOwnerOrAdmin) {
-      toast.error('You do not have permission to manage integrations');
-      return false;
-    }
-
-    try {
-      const existing = getIntegration(provider);
-
-      if (existing) {
-        // Update existing integration
-        const { error } = await supabase
-          .from('integrations')
-          .update({
-            api_key_encrypted: apiKey, // In production, encrypt this on the server
-            webhook_secret_encrypted: webhookSecret,
-            status: 'connected',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existing.id);
-
-        if (error) throw error;
-      } else {
-        // Create new integration
-        const { error } = await supabase.from('integrations').insert({
-          tenant_id: user.tenant_id,
-          provider,
-          api_key_encrypted: apiKey,
-          webhook_secret_encrypted: webhookSecret,
-          status: 'connected',
-        });
-
-        if (error) throw error;
-      }
-
-      await fetchIntegrations();
-      toast.success(`${provider} connected successfully`);
-      return true;
-    } catch (error) {
-      console.error('Error connecting integration:', error);
-      toast.error('Failed to connect integration');
-      return false;
-    }
-  };
-
-  const disconnectIntegration = async (provider: IntegrationProvider) => {
-    if (!user?.tenant_id || !isOwnerOrAdmin) {
-      toast.error('You do not have permission to manage integrations');
-      return false;
-    }
-
-    try {
-      const integration = getIntegration(provider);
-      if (!integration) return false;
-
-      const { error } = await supabase
-        .from('integrations')
-        .update({
-          status: 'disconnected',
-          api_key_encrypted: null,
-          webhook_secret_encrypted: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', integration.id);
-
-      if (error) throw error;
-
-      await fetchIntegrations();
-      toast.success(`${provider} disconnected`);
-      return true;
-    } catch (error) {
-      console.error('Error disconnecting integration:', error);
-      toast.error('Failed to disconnect integration');
-      return false;
-    }
   };
 
   return {
@@ -127,8 +63,6 @@ export function useIntegrations() {
     loading,
     getIntegration,
     isConnected,
-    connectIntegration,
-    disconnectIntegration,
     refetch: fetchIntegrations,
   };
 }
