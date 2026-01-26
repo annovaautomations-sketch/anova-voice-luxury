@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-session-id",
 };
 
 Deno.serve(async (req) => {
@@ -11,48 +11,43 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ ok: false, message: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Get session ID from header (custom auth system)
+    const sessionId = req.headers.get("x-session-id");
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ ok: false, message: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = claimsData.claims.sub as string;
-
-    // Get user's tenant_id
-    const { data: profile, error: profileError } = await supabase
-      .from("user_profiles")
-      .select("tenant_id")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (profileError || !profile?.tenant_id) {
+    if (!sessionId) {
       return new Response(JSON.stringify({ ok: true, connected: false, last_synced_at: null }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const tenantId = profile.tenant_id;
+    // Create Supabase admin client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Validate session
+    const { data: session, error: sessionError } = await serviceClient
+      .from("sessions")
+      .select("*, user_profiles(tenant_id)")
+      .eq("id", sessionId)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+
+    if (sessionError || !session) {
+      return new Response(JSON.stringify({ ok: true, connected: false, last_synced_at: null }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const tenantId = session.user_profiles?.tenant_id;
+    if (!tenantId) {
+      return new Response(JSON.stringify({ ok: true, connected: false, last_synced_at: null }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Get Vapi integration status
-    const { data: integration } = await supabase
+    const { data: integration } = await serviceClient
       .from("integrations")
       .select("status, last_synced_at")
       .eq("tenant_id", tenantId)

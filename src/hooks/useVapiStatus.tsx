@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useCustomAuth';
 
 interface VapiStatus {
   connected: boolean;
@@ -8,6 +9,7 @@ interface VapiStatus {
 }
 
 export function useVapiStatus() {
+  const { sessionId } = useAuth();
   const [status, setStatus] = useState<VapiStatus>({
     connected: false,
     lastSyncedAt: null,
@@ -15,16 +17,15 @@ export function useVapiStatus() {
   });
 
   const fetchStatus = useCallback(async () => {
+    if (!sessionId) {
+      setStatus({ connected: false, lastSyncedAt: null, loading: false });
+      return;
+    }
+    
     setStatus(prev => ({ ...prev, loading: true }));
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setStatus({ connected: false, lastSyncedAt: null, loading: false });
-        return;
-      }
-
       const response = await supabase.functions.invoke('vapi-status', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { 'x-session-id': sessionId },
       });
 
       if (response.data?.ok) {
@@ -40,7 +41,7 @@ export function useVapiStatus() {
       console.error('Error fetching Vapi status:', error);
       setStatus({ connected: false, lastSyncedAt: null, loading: false });
     }
-  }, []);
+  }, [sessionId]);
 
   useEffect(() => {
     fetchStatus();

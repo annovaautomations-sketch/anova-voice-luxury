@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-session-id",
 };
 
 Deno.serve(async (req) => {
@@ -11,40 +11,41 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ ok: false, message: "Unauthorized" }), {
+    // Get session ID from header (custom auth system)
+    const sessionId = req.headers.get("x-session-id");
+
+    if (!sessionId) {
+      console.log("No session ID provided");
+      return new Response(JSON.stringify({ ok: false, message: "Not authenticated" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    // Create Supabase admin client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ ok: false, message: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = claimsData.claims.sub as string;
-
-    // Get user's tenant_id
-    const { data: profile, error: profileError } = await supabase
-      .from("user_profiles")
-      .select("tenant_id")
-      .eq("user_id", userId)
+    // Validate session
+    const { data: session, error: sessionError } = await serviceClient
+      .from("sessions")
+      .select("*, user_profiles(*, tenants(*))")
+      .eq("id", sessionId)
+      .gt("expires_at", new Date().toISOString())
       .maybeSingle();
 
-    if (profileError || !profile?.tenant_id) {
-      console.error("Profile error:", profileError);
+    if (sessionError || !session) {
+      console.log("Invalid or expired session:", sessionId);
+      return new Response(JSON.stringify({ ok: false, message: "Invalid or expired session" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const profile = session.user_profiles;
+    if (!profile?.tenant_id) {
+      console.error("Profile or tenant not found");
       return new Response(JSON.stringify({ ok: false, message: "User profile not found" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -75,7 +76,10 @@ Deno.serve(async (req) => {
     if (!vapiResponse.ok) {
       const errorText = await vapiResponse.text();
       console.error("Vapi validation failed:", vapiResponse.status, errorText);
-      return new Response(JSON.stringify({ ok: false, message: "Invalid Vapi API key" }), {
+      return new Response(JSON.stringify({ 
+        ok: false, 
+        message: `Invalid Vapi API key (${vapiResponse.status})` 
+      }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -84,12 +88,6 @@ Deno.serve(async (req) => {
     await vapiResponse.text(); // Consume response body
 
     console.log("Vapi API key is valid, storing integration...");
-
-    // Use service role to upsert integration (bypass RLS for insert)
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
 
     // Check if integration exists
     const { data: existing } = await serviceClient
