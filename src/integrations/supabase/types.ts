@@ -299,6 +299,7 @@ export type Database = {
           config_json: Json | null
           created_at: string
           id: string
+          last_synced_at: string | null
           provider: Database["public"]["Enums"]["integration_provider"]
           status: Database["public"]["Enums"]["integration_status"]
           tenant_id: string
@@ -310,6 +311,7 @@ export type Database = {
           config_json?: Json | null
           created_at?: string
           id?: string
+          last_synced_at?: string | null
           provider: Database["public"]["Enums"]["integration_provider"]
           status?: Database["public"]["Enums"]["integration_status"]
           tenant_id: string
@@ -321,6 +323,7 @@ export type Database = {
           config_json?: Json | null
           created_at?: string
           id?: string
+          last_synced_at?: string | null
           provider?: Database["public"]["Enums"]["integration_provider"]
           status?: Database["public"]["Enums"]["integration_status"]
           tenant_id?: string

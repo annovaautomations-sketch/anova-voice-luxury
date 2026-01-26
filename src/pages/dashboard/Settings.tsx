@@ -1,6 +1,7 @@
 import { useAuth } from '@/hooks/useCustomAuth';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { IntegrationCard } from '@/components/integrations/IntegrationCard';
+import { VapiIntegrationCard } from '@/components/integrations/VapiIntegrationCard';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,20 +16,21 @@ import {
   Loader2,
 } from 'lucide-react';
 
+// Integration configs - excluding Vapi since it has its own card
 const INTEGRATION_CONFIG = [
-  {
-    provider: 'vapi' as const,
-    name: 'Vapi',
-    description: 'AI voice agents for phone calls. Connect to receive call data and manage assistants.',
-    requiresWebhookSecret: true,
-    docsUrl: 'https://docs.vapi.ai',
-  },
   {
     provider: 'google_calendar' as const,
     name: 'Google Calendar',
     description: 'Sync appointments and bookings with your Google Calendar.',
     requiresWebhookSecret: false,
     docsUrl: 'https://developers.google.com/calendar',
+  },
+  {
+    provider: 'openai' as const,
+    name: 'OpenAI',
+    description: 'GPT models for enhanced conversation understanding and summaries.',
+    requiresWebhookSecret: false,
+    docsUrl: 'https://platform.openai.com/docs',
   },
   {
     provider: 'openai' as const,
@@ -88,6 +90,10 @@ export default function Settings() {
               </div>
             ) : (
               <div className="grid gap-4">
+                {/* Vapi Integration Card with sync capabilities */}
+                <VapiIntegrationCard isOwnerOrAdmin={isOwnerOrAdmin} />
+                
+                {/* Other integrations */}
                 {INTEGRATION_CONFIG.map((config) => (
                   <IntegrationCard
                     key={config.provider}
