@@ -25,12 +25,11 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Validate session
+    // Validate session - simple query without joins
     const { data: session, error: sessionError } = await serviceClient
       .from("sessions")
-      .select("*, user_profiles(tenant_id)")
+      .select("id, user_id, tenant_id, expires_at")
       .eq("id", sessionId)
-      .gt("expires_at", new Date().toISOString())
       .maybeSingle();
 
     if (sessionError || !session) {
@@ -39,12 +38,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    const tenantId = session.user_profiles?.tenant_id;
-    if (!tenantId) {
+    // Check if session is expired
+    const now = new Date();
+    const expiresAt = new Date(session.expires_at);
+    if (expiresAt < now) {
       return new Response(JSON.stringify({ ok: true, connected: false, last_synced_at: null }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const tenantId = session.tenant_id;
 
     // Get Vapi integration status
     const { data: integration } = await serviceClient

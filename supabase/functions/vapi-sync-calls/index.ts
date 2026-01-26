@@ -36,10 +36,11 @@ Deno.serve(async (req) => {
   try {
     // Get session ID from header (custom auth system)
     const sessionId = req.headers.get("x-session-id");
+    console.log("Received session ID:", sessionId);
 
     if (!sessionId) {
       console.log("No session ID provided");
-      return new Response(JSON.stringify({ ok: false, message: "Not authenticated" }), {
+      return new Response(JSON.stringify({ ok: false, message: "Not authenticated - no session" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -50,29 +51,44 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Validate session
+    // Validate session - simple query without joins
     const { data: session, error: sessionError } = await serviceClient
       .from("sessions")
-      .select("*, user_profiles(tenant_id)")
+      .select("id, user_id, tenant_id, expires_at")
       .eq("id", sessionId)
-      .gt("expires_at", new Date().toISOString())
       .maybeSingle();
 
-    if (sessionError || !session) {
-      console.log("Invalid or expired session:", sessionId);
-      return new Response(JSON.stringify({ ok: false, message: "Invalid or expired session" }), {
+    console.log("Session query result:", { session, error: sessionError });
+
+    if (sessionError) {
+      console.error("Session query error:", sessionError);
+      return new Response(JSON.stringify({ ok: false, message: "Session query failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!session) {
+      console.log("No session found for ID:", sessionId);
+      return new Response(JSON.stringify({ ok: false, message: "Session not found" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const tenantId = session.user_profiles?.tenant_id;
-    if (!tenantId) {
-      return new Response(JSON.stringify({ ok: false, message: "User profile not found" }), {
-        status: 400,
+    // Check if session is expired
+    const now = new Date();
+    const expiresAt = new Date(session.expires_at);
+    if (expiresAt < now) {
+      console.log("Session expired:", { expiresAt, now });
+      return new Response(JSON.stringify({ ok: false, message: "Session expired" }), {
+        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const tenantId = session.tenant_id;
+    console.log("Authenticated user, tenant_id:", tenantId);
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
@@ -123,12 +139,16 @@ Deno.serve(async (req) => {
         url.searchParams.set("cursor", cursor);
       }
 
+      console.log("Fetching from Vapi:", url.toString());
+
       const response = await fetch(url.toString(), {
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
       });
+
+      console.log("Vapi response status:", response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
