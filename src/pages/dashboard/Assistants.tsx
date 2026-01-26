@@ -12,24 +12,24 @@ import type { Database } from '@/integrations/supabase/types';
 type Assistant = Database['public']['Tables']['assistants']['Row'];
 
 export default function Assistants() {
-  const { profile, isOwnerOrAdmin } = useAuth();
+  const { user, isOwnerOrAdmin } = useAuth();
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (profile?.tenant_id) {
+    if (user?.tenant_id) {
       fetchAssistants();
     }
-  }, [profile?.tenant_id]);
+  }, [user?.tenant_id]);
 
   const fetchAssistants = async () => {
-    if (!profile?.tenant_id) return;
+    if (!user?.tenant_id) return;
 
     try {
       const { data, error } = await supabase
         .from('assistants')
         .select('*')
-        .eq('tenant_id', profile.tenant_id)
+        .eq('tenant_id', user.tenant_id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

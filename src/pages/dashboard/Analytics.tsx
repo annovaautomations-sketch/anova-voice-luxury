@@ -50,7 +50,7 @@ const COLORS = {
 };
 
 export default function Analytics() {
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [outcomeData, setOutcomeData] = useState<OutcomeData[]>([]);
@@ -63,13 +63,13 @@ export default function Analytics() {
   });
 
   useEffect(() => {
-    if (profile?.tenant_id) {
+    if (user?.tenant_id) {
       fetchAnalytics();
     }
-  }, [profile?.tenant_id]);
+  }, [user?.tenant_id]);
 
   const fetchAnalytics = async () => {
-    if (!profile?.tenant_id) return;
+    if (!user?.tenant_id) return;
 
     try {
       const endDate = new Date();
@@ -78,7 +78,7 @@ export default function Analytics() {
       const { data: calls, error } = await supabase
         .from('calls')
         .select('*')
-        .eq('tenant_id', profile.tenant_id)
+        .eq('tenant_id', user.tenant_id)
         .gte('started_at', startDate.toISOString())
         .order('started_at', { ascending: true });
 
