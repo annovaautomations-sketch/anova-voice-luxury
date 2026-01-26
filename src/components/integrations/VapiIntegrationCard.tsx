@@ -26,12 +26,14 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useAuth } from '@/hooks/useCustomAuth';
 
 interface VapiIntegrationCardProps {
   isOwnerOrAdmin: boolean;
 }
 
 export function VapiIntegrationCard({ isOwnerOrAdmin }: VapiIntegrationCardProps) {
+  const { sessionId } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
@@ -42,17 +44,18 @@ export function VapiIntegrationCard({ isOwnerOrAdmin }: VapiIntegrationCardProps
   const [statusLoading, setStatusLoading] = useState(true);
 
   useEffect(() => {
-    fetchStatus();
-  }, []);
+    if (sessionId) {
+      fetchStatus();
+    }
+  }, [sessionId]);
 
   const fetchStatus = async () => {
+    if (!sessionId) return;
+    
     setStatusLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
       const response = await supabase.functions.invoke('vapi-status', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { 'x-session-id': sessionId },
       });
 
       if (response.data?.ok) {
@@ -67,19 +70,13 @@ export function VapiIntegrationCard({ isOwnerOrAdmin }: VapiIntegrationCardProps
   };
 
   const handleConnect = async () => {
-    if (!apiKey.trim()) return;
+    if (!apiKey.trim() || !sessionId) return;
 
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('Not authenticated');
-        return;
-      }
-
       const response = await supabase.functions.invoke('vapi-connect', {
         body: { apiKey },
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { 'x-session-id': sessionId },
       });
 
       if (response.data?.ok) {
@@ -99,17 +96,16 @@ export function VapiIntegrationCard({ isOwnerOrAdmin }: VapiIntegrationCardProps
   };
 
   const handleSync = async (days: number) => {
+    if (!sessionId) {
+      toast.error('Not authenticated');
+      return;
+    }
+    
     setSyncing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('Not authenticated');
-        return;
-      }
-
       const response = await supabase.functions.invoke('vapi-sync-calls', {
         body: { days },
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { 'x-session-id': sessionId },
       });
 
       if (response.data?.ok) {
