@@ -391,6 +391,38 @@ export type Database = {
           },
         ]
       }
+      sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           created_at: string
@@ -420,7 +452,9 @@ export type Database = {
           created_at: string
           display_name: string | null
           email: string
+          google_sub: string | null
           id: string
+          picture_url: string | null
           role: Database["public"]["Enums"]["app_role"]
           tenant_id: string
           user_id: string
@@ -429,7 +463,9 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           email: string
+          google_sub?: string | null
           id?: string
+          picture_url?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           tenant_id: string
           user_id: string
@@ -438,7 +474,9 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           email?: string
+          google_sub?: string | null
           id?: string
+          picture_url?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           tenant_id?: string
           user_id?: string
