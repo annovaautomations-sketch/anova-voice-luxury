@@ -11,21 +11,23 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   const { user, profile, loading } = useAuth();
   const location = useLocation();
 
+  // Show loading state while checking auth
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center animate-pulse">
-            <span className="text-primary font-bold text-lg">A</span>
+        <div className="flex flex-col items-center gap-4 fade-in">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center emerald-glow animate-pulse">
+            <span className="text-primary font-bold text-xl">A</span>
           </div>
           <p className="text-muted-foreground text-sm">Loading...</p>
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       </div>
     );
   }
 
+  // Not authenticated - redirect to login
   if (!user) {
-    // Redirect to login with the current location for post-login redirect
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
