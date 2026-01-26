@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useCustomAuth';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -8,18 +8,18 @@ type Integration = Database['public']['Tables']['integrations']['Row'];
 type IntegrationProvider = Database['public']['Enums']['integration_provider'];
 
 export function useIntegrations() {
-  const { tenant, isOwnerOrAdmin } = useAuth();
+  const { user, isOwnerOrAdmin } = useAuth();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchIntegrations = async () => {
-    if (!tenant?.id) return;
+    if (!user?.tenant_id) return;
 
     try {
       const { data, error } = await supabase
         .from('integrations')
         .select('*')
-        .eq('tenant_id', tenant.id);
+        .eq('tenant_id', user.tenant_id);
 
       if (error) throw error;
       setIntegrations(data || []);
@@ -31,10 +31,10 @@ export function useIntegrations() {
   };
 
   useEffect(() => {
-    if (tenant?.id) {
+    if (user?.tenant_id) {
       fetchIntegrations();
     }
-  }, [tenant?.id]);
+  }, [user?.tenant_id]);
 
   const getIntegration = (provider: IntegrationProvider): Integration | undefined => {
     return integrations.find((i) => i.provider === provider);
@@ -46,7 +46,7 @@ export function useIntegrations() {
   };
 
   const connectIntegration = async (provider: IntegrationProvider, apiKey: string, webhookSecret?: string) => {
-    if (!tenant?.id || !isOwnerOrAdmin) {
+    if (!user?.tenant_id || !isOwnerOrAdmin) {
       toast.error('You do not have permission to manage integrations');
       return false;
     }
@@ -70,7 +70,7 @@ export function useIntegrations() {
       } else {
         // Create new integration
         const { error } = await supabase.from('integrations').insert({
-          tenant_id: tenant.id,
+          tenant_id: user.tenant_id,
           provider,
           api_key_encrypted: apiKey,
           webhook_secret_encrypted: webhookSecret,
@@ -91,7 +91,7 @@ export function useIntegrations() {
   };
 
   const disconnectIntegration = async (provider: IntegrationProvider) => {
-    if (!tenant?.id || !isOwnerOrAdmin) {
+    if (!user?.tenant_id || !isOwnerOrAdmin) {
       toast.error('You do not have permission to manage integrations');
       return false;
     }

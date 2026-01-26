@@ -1,1 +1,25 @@
 project_id = "porhipzfjmbyflwpqtco"
+
+[functions.auth-google]
+verify_jwt = false
+
+[functions.auth-me]
+verify_jwt = false
+
+[functions.auth-logout]
+verify_jwt = false
+
+[functions.webhooks-vapi]
+verify_jwt = false
+
+[functions.booking-check]
+verify_jwt = false
+
+[functions.booking-book]
+verify_jwt = false
+
+[functions.booking-reschedule]
+verify_jwt = false
+
+[functions.booking-cancel]
+verify_jwt = false

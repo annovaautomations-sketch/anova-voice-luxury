@@ -1,4 +1,4 @@
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useCustomAuth';
 import { useIntegrations } from '@/hooks/useIntegrations';
 import { IntegrationCard } from '@/components/integrations/IntegrationCard';
 import { Card } from '@/components/ui/card';

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useCustomAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,7 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Phone, PhoneIncoming, PhoneOutgoing, Filter, X } from 'lucide-react';
+import { Search, Phone, PhoneIncoming, PhoneOutgoing, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { OUTCOME_COLORS, STATUS_COLORS } from '@/lib/constants';
@@ -41,7 +41,7 @@ interface Call {
 }
 
 export default function Calls() {
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [calls, setCalls] = useState<Call[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,19 +50,19 @@ export default function Calls() {
   const [directionFilter, setDirectionFilter] = useState<string>('all');
 
   useEffect(() => {
-    if (profile?.tenant_id) {
+    if (user?.tenant_id) {
       fetchCalls();
     }
-  }, [profile?.tenant_id]);
+  }, [user?.tenant_id]);
 
   const fetchCalls = async () => {
-    if (!profile?.tenant_id) return;
+    if (!user?.tenant_id) return;
 
     try {
       const { data, error } = await supabase
         .from('calls')
         .select('*')
-        .eq('tenant_id', profile.tenant_id)
+        .eq('tenant_id', user.tenant_id)
         .order('started_at', { ascending: false })
         .limit(100);
 
