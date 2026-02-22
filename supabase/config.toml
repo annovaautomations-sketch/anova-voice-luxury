@@ -38,3 +38,9 @@ verify_jwt = false
 
 [functions.data-integrations]
 verify_jwt = false
+
+[functions.data-leads]
+verify_jwt = false
+
+[functions.data-appointments]
+verify_jwt = false

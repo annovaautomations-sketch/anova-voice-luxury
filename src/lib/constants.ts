@@ -1,13 +1,25 @@
-// Navigation items for the sidebar
-export const NAV_ITEMS = [
-  { name: 'Overview', path: '/dashboard', icon: 'LayoutDashboard' },
-  { name: 'Calls', path: '/dashboard/calls', icon: 'Phone' },
-  { name: 'Assistants', path: '/dashboard/assistants', icon: 'Bot' },
-  { name: 'Numbers', path: '/dashboard/numbers', icon: 'Hash' },
-  { name: 'Appointments', path: '/dashboard/appointments', icon: 'Calendar' },
-  { name: 'Analytics', path: '/dashboard/analytics', icon: 'BarChart3' },
-  { name: 'Settings', path: '/dashboard/settings', icon: 'Settings' },
+// Navigation sections for Alex AI sidebar
+export const NAV_SECTIONS = [
+  {
+    label: 'ANALYTICS',
+    items: [
+      { name: 'Overview', path: '/dashboard', icon: 'LayoutDashboard' },
+      { name: 'Call Analytics', path: '/dashboard/call-analytics', icon: 'PhoneCall' },
+      { name: 'Lead Pipeline', path: '/dashboard/leads', icon: 'TrendingUp' },
+      { name: 'Appointments', path: '/dashboard/appointments', icon: 'CalendarCheck' },
+    ],
+  },
+  {
+    label: 'OPERATIONS',
+    items: [
+      { name: 'Live Monitor', path: '/dashboard/monitor', icon: 'Radio' },
+      { name: 'Call History', path: '/dashboard/calls', icon: 'History' },
+    ],
+  },
 ] as const;
+
+// Flat nav items for backward compat
+export const NAV_ITEMS = NAV_SECTIONS.flatMap(s => [...s.items]);
 
 // Role permissions
 export const ROLE_PERMISSIONS = {
@@ -17,60 +29,32 @@ export const ROLE_PERMISSIONS = {
   VIEWER: ['view'],
 } as const;
 
-// Integration providers
-export const INTEGRATION_PROVIDERS = {
-  vapi: {
-    name: 'Vapi',
-    description: 'AI voice agents for phone calls',
-    icon: 'Phone',
-    color: 'emerald',
-  },
-  google_calendar: {
-    name: 'Google Calendar',
-    description: 'Sync appointments and bookings',
-    icon: 'Calendar',
-    color: 'blue',
-  },
-  openai: {
-    name: 'OpenAI',
-    description: 'GPT models for conversation',
-    icon: 'Brain',
-    color: 'purple',
-  },
-  elevenlabs: {
-    name: 'ElevenLabs',
-    description: 'Natural voice synthesis',
-    icon: 'Volume2',
-    color: 'pink',
-  },
-  twilio: {
-    name: 'Twilio',
-    description: 'Phone number provisioning',
-    icon: 'PhoneCall',
-    color: 'red',
-  },
-} as const;
+// Outcome colors for charts
+export const OUTCOME_COLORS: Record<string, string> = {
+  booked: 'hsl(160, 84%, 39%)',
+  qualified: 'hsl(217, 91%, 60%)',
+  not_qualified: 'hsl(38, 92%, 50%)',
+  other: 'hsl(215, 16%, 47%)',
+};
 
-// Call outcome colors
-export const OUTCOME_COLORS = {
-  booked: 'text-primary',
-  qualified: 'text-info',
-  not_qualified: 'text-warning',
-  other: 'text-muted-foreground',
-} as const;
+// Status badge styles
+export const STATUS_BADGE_STYLES: Record<string, string> = {
+  booked: 'bg-primary/10 text-primary',
+  rescheduled: 'bg-warning/10 text-warning',
+  cancelled: 'bg-destructive/10 text-destructive',
+  SCHEDULED: 'bg-info/10 text-info',
+  COMPLETED: 'bg-primary/10 text-primary',
+  CANCELLED: 'bg-destructive/10 text-destructive',
+  NO_SHOW: 'bg-warning/10 text-warning',
+};
 
-// Call status colors
-export const STATUS_COLORS = {
-  queued: 'text-muted-foreground',
-  ringing: 'text-warning',
-  'in-progress': 'text-info',
-  forwarding: 'text-info',
-  ended: 'text-foreground',
-} as const;
-
-// Appointment status colors
-export const APPOINTMENT_STATUS_COLORS = {
-  booked: 'text-primary',
-  rescheduled: 'text-warning',
-  cancelled: 'text-destructive',
-} as const;
+export const LEAD_STATUS_COLORS: Record<string, string> = {
+  NEW: 'hsl(215, 16%, 47%)',
+  CONTACTED: 'hsl(217, 91%, 60%)',
+  QUALIFIED: 'hsl(160, 84%, 39%)',
+  UNQUALIFIED: 'hsl(0, 84%, 60%)',
+  APPOINTMENT_SCHEDULED: 'hsl(38, 92%, 50%)',
+  APPOINTMENT_COMPLETED: 'hsl(43, 66%, 52%)',
+  CLOSED_WON: 'hsl(152, 90%, 30%)',
+  CLOSED_LOST: 'hsl(0, 62%, 50%)',
+};

@@ -16,10 +16,10 @@ function DashboardContent({ children }: DashboardLayoutProps) {
       <main
         className={cn(
           'transition-all duration-300 min-h-screen',
-          collapsed ? 'ml-16' : 'ml-64'
+          collapsed ? 'ml-16' : 'ml-60'
         )}
       >
-        <div className="p-6 lg:p-8">
+        <div className="p-6 lg:p-8 max-w-[1600px]">
           {children}
         </div>
       </main>
