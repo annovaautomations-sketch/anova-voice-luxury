@@ -213,6 +213,7 @@ export type Database = {
           extracted_json: Json | null
           from_e164: string | null
           id: string
+          lead_id: string | null
           number_id: string | null
           outcome: Database["public"]["Enums"]["call_outcome"] | null
           recording_url: string | null
@@ -235,6 +236,7 @@ export type Database = {
           extracted_json?: Json | null
           from_e164?: string | null
           id?: string
+          lead_id?: string | null
           number_id?: string | null
           outcome?: Database["public"]["Enums"]["call_outcome"] | null
           recording_url?: string | null
@@ -257,6 +259,7 @@ export type Database = {
           extracted_json?: Json | null
           from_e164?: string | null
           id?: string
+          lead_id?: string | null
           number_id?: string | null
           outcome?: Database["public"]["Enums"]["call_outcome"] | null
           recording_url?: string | null
@@ -275,6 +278,13 @@ export type Database = {
             columns: ["assistant_id"]
             isOneToOne: false
             referencedRelation: "assistants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
           {
@@ -333,6 +343,74 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "integrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          bedrooms: number | null
+          budget: string | null
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          notes: string | null
+          phone: string
+          preferred_areas: string | null
+          price_max: number | null
+          price_min: number | null
+          property_type: string | null
+          score: number
+          status: Database["public"]["Enums"]["lead_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          bedrooms?: number | null
+          budget?: string | null
+          created_at?: string
+          email?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          notes?: string | null
+          phone: string
+          preferred_areas?: string | null
+          price_max?: number | null
+          price_min?: number | null
+          property_type?: string | null
+          score?: number
+          status?: Database["public"]["Enums"]["lead_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          bedrooms?: number | null
+          budget?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          notes?: string | null
+          phone?: string
+          preferred_areas?: string | null
+          price_max?: number | null
+          price_min?: number | null
+          property_type?: string | null
+          score?: number
+          status?: Database["public"]["Enums"]["lead_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -558,6 +636,15 @@ export type Database = {
         | "elevenlabs"
         | "twilio"
       integration_status: "connected" | "disconnected"
+      lead_status:
+        | "NEW"
+        | "CONTACTED"
+        | "QUALIFIED"
+        | "UNQUALIFIED"
+        | "APPOINTMENT_SCHEDULED"
+        | "APPOINTMENT_COMPLETED"
+        | "CLOSED_WON"
+        | "CLOSED_LOST"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -698,6 +785,16 @@ export const Constants = {
         "twilio",
       ],
       integration_status: ["connected", "disconnected"],
+      lead_status: [
+        "NEW",
+        "CONTACTED",
+        "QUALIFIED",
+        "UNQUALIFIED",
+        "APPOINTMENT_SCHEDULED",
+        "APPOINTMENT_COMPLETED",
+        "CLOSED_WON",
+        "CLOSED_LOST",
+      ],
     },
   },
 } as const

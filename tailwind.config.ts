@@ -8,9 +8,7 @@ export default {
     container: {
       center: true,
       padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
+      screens: { "2xl": "1400px" },
     },
     extend: {
       colors: {
@@ -57,18 +55,11 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        // Custom ANOVA colors
-        surface: {
-          elevated: "hsl(var(--surface-elevated))",
-          overlay: "hsl(var(--surface-overlay))",
-        },
-        emerald: {
-          glow: "hsl(var(--emerald-glow))",
-          dim: "hsl(var(--emerald-dim))",
-        },
-        success: "hsl(var(--success))",
-        warning: "hsl(var(--warning))",
+        gold: "hsl(var(--gold))",
         info: "hsl(var(--info))",
+        warning: "hsl(var(--warning))",
+        success: "hsl(var(--success))",
+        purple: "hsl(var(--purple))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -76,8 +67,8 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', 'monospace'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
       keyframes: {
         "accordion-down": {
@@ -88,35 +79,10 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        shimmer: {
-          "0%": { backgroundPosition: "-200% 0" },
-          "100%": { backgroundPosition: "200% 0" },
-        },
-        "fade-in": {
-          "0%": { opacity: "0", transform: "translateY(10px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        "scale-in": {
-          "0%": { opacity: "0", transform: "scale(0.95)" },
-          "100%": { opacity: "1", transform: "scale(1)" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        shimmer: "shimmer 2s linear infinite",
-        "fade-in": "fade-in 0.3s ease-out",
-        "scale-in": "scale-in 0.2s ease-out",
-      },
-      backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-conic": "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
-        "emerald-gradient": "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
-      },
-      boxShadow: {
-        glow: "0 0 20px -5px hsl(var(--primary) / 0.4)",
-        "glow-lg": "0 0 40px -10px hsl(var(--primary) / 0.3)",
-        elevated: "0 4px 24px -4px hsl(0 0% 0% / 0.3)",
       },
     },
   },

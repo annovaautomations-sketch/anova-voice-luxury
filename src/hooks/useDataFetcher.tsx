@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useCustomAuth';
 
 interface FetchOptions {
@@ -9,118 +8,69 @@ interface FetchOptions {
   id?: string;
 }
 
+function getBaseUrl() {
+  return import.meta.env.VITE_SUPABASE_URL;
+}
+
 export function useDataFetcher() {
   const { sessionId } = useAuth();
 
-  const fetchCalls = useCallback(async (options: FetchOptions = {}) => {
-    if (!sessionId) {
-      console.error('No session ID available');
-      return { ok: false, calls: [], message: 'Not authenticated' };
-    }
-
+  const authedFetch = useCallback(async (fnName: string, params?: URLSearchParams) => {
+    if (!sessionId) return { ok: false, message: 'Not authenticated' };
+    const url = `${getBaseUrl()}/functions/v1/${fnName}${params ? `?${params}` : ''}`;
     try {
-      const params = new URLSearchParams();
-      if (options.limit) params.set('limit', options.limit.toString());
-      if (options.startDate) params.set('startDate', options.startDate);
-      if (options.endDate) params.set('endDate', options.endDate);
-      if (options.id) params.set('id', options.id);
-
-      const response = await supabase.functions.invoke('data-calls', {
-        headers: { 'x-session-id': sessionId },
-        body: null,
+      const res = await fetch(url, {
         method: 'GET',
+        headers: { 'x-session-id': sessionId, 'Content-Type': 'application/json' },
       });
-
-      // Handle query params by using the full URL approach
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const fullUrl = `${supabaseUrl}/functions/v1/data-calls?${params.toString()}`;
-      
-      const fetchResponse = await fetch(fullUrl, {
-        method: 'GET',
-        headers: {
-          'x-session-id': sessionId,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await fetchResponse.json();
-      return data;
+      return await res.json();
     } catch (error) {
-      console.error('Error fetching calls:', error);
-      return { ok: false, calls: [], message: 'Failed to fetch calls' };
+      console.error(`Error fetching ${fnName}:`, error);
+      return { ok: false, message: `Failed to fetch ${fnName}` };
     }
   }, [sessionId]);
+
+  const fetchCalls = useCallback(async (options: FetchOptions = {}) => {
+    const params = new URLSearchParams();
+    if (options.limit) params.set('limit', options.limit.toString());
+    if (options.startDate) params.set('startDate', options.startDate);
+    if (options.endDate) params.set('endDate', options.endDate);
+    if (options.id) params.set('id', options.id);
+    return authedFetch('data-calls', params);
+  }, [authedFetch]);
 
   const fetchCall = useCallback(async (callId: string) => {
-    if (!sessionId) {
-      return { ok: false, call: null, message: 'Not authenticated' };
-    }
-
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const fullUrl = `${supabaseUrl}/functions/v1/data-calls?id=${callId}`;
-      
-      const response = await fetch(fullUrl, {
-        method: 'GET',
-        headers: {
-          'x-session-id': sessionId,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching call:', error);
-      return { ok: false, call: null, message: 'Failed to fetch call' };
-    }
-  }, [sessionId]);
+    const params = new URLSearchParams({ id: callId });
+    return authedFetch('data-calls', params);
+  }, [authedFetch]);
 
   const fetchIntegrations = useCallback(async () => {
-    if (!sessionId) {
-      return { ok: false, integrations: [], message: 'Not authenticated' };
-    }
+    return authedFetch('data-integrations');
+  }, [authedFetch]);
 
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const fullUrl = `${supabaseUrl}/functions/v1/data-integrations`;
-      
-      const response = await fetch(fullUrl, {
-        method: 'GET',
-        headers: {
-          'x-session-id': sessionId,
-          'Content-Type': 'application/json',
-        },
-      });
+  const fetchLeads = useCallback(async () => {
+    return authedFetch('data-leads');
+  }, [authedFetch]);
 
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching integrations:', error);
-      return { ok: false, integrations: [], message: 'Failed to fetch integrations' };
-    }
-  }, [sessionId]);
+  const fetchAppointments = useCallback(async () => {
+    return authedFetch('data-appointments');
+  }, [authedFetch]);
 
   const syncVapiCalls = useCallback(async (days: number = 7) => {
-    if (!sessionId) {
-      return { ok: false, message: 'Not authenticated' };
-    }
-
+    if (!sessionId) return { ok: false, message: 'Not authenticated' };
+    const url = `${getBaseUrl()}/functions/v1/vapi-sync-calls`;
     try {
-      const response = await supabase.functions.invoke('vapi-sync-calls', {
-        body: { days },
-        headers: { 'x-session-id': sessionId },
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'x-session-id': sessionId, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days }),
       });
-
-      return response.data;
+      return await res.json();
     } catch (error) {
       console.error('Error syncing calls:', error);
       return { ok: false, message: 'Failed to sync calls' };
     }
   }, [sessionId]);
 
-  return {
-    fetchCalls,
-    fetchCall,
-    fetchIntegrations,
-    syncVapiCalls,
-  };
+  return { fetchCalls, fetchCall, fetchIntegrations, fetchLeads, fetchAppointments, syncVapiCalls };
 }

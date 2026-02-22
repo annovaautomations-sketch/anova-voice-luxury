@@ -2,101 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ANOVA Voice Portal - Luxury Dark Emerald Design System */
+/* Alex AI — Berkshire Hathaway HomeServices Design System */
 
 @layer base {
   :root {
-    /* Core backgrounds - deep blacks */
-    --background: 210 20% 2%;
-    --foreground: 150 30% 93%;
+    --background: 210 40% 98%;
+    --foreground: 222.2 47.4% 11.2%;
 
-    /* Card/surface colors */
-    --card: 160 20% 4%;
-    --card-foreground: 150 30% 93%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
 
-    /* Popover */
-    --popover: 160 15% 5%;
-    --popover-foreground: 150 30% 93%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
 
-    /* Primary - Emerald */
-    --primary: 152 90% 36%;
+    --primary: 160 84% 39%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - darker surface */
-    --secondary: 160 15% 7%;
-    --secondary-foreground: 150 20% 70%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-    /* Muted */
-    --muted: 160 10% 12%;
-    --muted-foreground: 150 15% 60%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    /* Accent - emerald glow */
-    --accent: 152 90% 40%;
+    --accent: 161 94% 30%;
     --accent-foreground: 0 0% 100%;
 
-    /* Destructive */
-    --destructive: 0 72% 51%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders */
-    --border: 160 20% 12%;
-    --input: 160 15% 14%;
-    --ring: 152 90% 36%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 160 84% 39%;
 
-    /* Radius */
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* Sidebar */
-    --sidebar-background: 160 20% 3%;
-    --sidebar-foreground: 150 20% 70%;
-    --sidebar-primary: 152 90% 36%;
+    /* Sidebar — dark */
+    --sidebar-background: 222.2 47.4% 11.2%;
+    --sidebar-foreground: 215 20.2% 65.1%;
+    --sidebar-primary: 160 84% 39%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 15% 8%;
-    --sidebar-accent-foreground: 150 30% 93%;
-    --sidebar-border: 160 20% 10%;
-    --sidebar-ring: 152 90% 36%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 160 84% 39%;
 
-    /* Custom ANOVA tokens */
-    --surface-elevated: 160 18% 5%;
-    --surface-overlay: 160 15% 7%;
-    --emerald-glow: 152 90% 45%;
-    --emerald-dim: 152 40% 25%;
-    --text-primary: 150 30% 93%;
-    --text-secondary: 150 15% 60%;
-    --text-muted: 150 10% 45%;
-    --success: 152 80% 40%;
+    /* Semantic tokens */
+    --gold: 43 66% 52%;
+    --info: 217 91% 60%;
     --warning: 38 92% 50%;
-    --info: 200 80% 50%;
+    --success: 160 84% 39%;
+    --purple: 258 90% 66%;
+
+    /* Card shadow */
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
   }
 
   .dark {
-    --background: 210 20% 2%;
-    --foreground: 150 30% 93%;
-    --card: 160 20% 4%;
-    --card-foreground: 150 30% 93%;
-    --popover: 160 15% 5%;
-    --popover-foreground: 150 30% 93%;
-    --primary: 152 90% 36%;
+    --background: 222.2 47.4% 11.2%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 47.4% 13%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 47.4% 13%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 160 84% 39%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 160 15% 7%;
-    --secondary-foreground: 150 20% 70%;
-    --muted: 160 10% 12%;
-    --muted-foreground: 150 15% 60%;
-    --accent: 152 90% 40%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 161 94% 30%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 160 20% 12%;
-    --input: 160 15% 14%;
-    --ring: 152 90% 36%;
-    --sidebar-background: 160 20% 3%;
-    --sidebar-foreground: 150 20% 70%;
-    --sidebar-primary: 152 90% 36%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 160 84% 39%;
+    --sidebar-background: 222.2 47.4% 8%;
+    --sidebar-foreground: 215 20.2% 65.1%;
+    --sidebar-primary: 160 84% 39%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 15% 8%;
-    --sidebar-accent-foreground: 150 30% 93%;
-    --sidebar-border: 160 20% 10%;
-    --sidebar-ring: 152 90% 36%;
+    --sidebar-accent: 217.2 32.6% 13%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 13%;
+    --sidebar-ring: 160 84% 39%;
   }
 }
 
@@ -104,198 +92,78 @@
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
-  /* Custom scrollbar for luxury feel */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
-
   ::-webkit-scrollbar-track {
-    background: hsl(var(--background));
+    background: transparent;
   }
-
   ::-webkit-scrollbar-thumb {
     background: hsl(var(--border));
     border-radius: 3px;
   }
-
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.3);
   }
 }
 
 @layer components {
-  /* Glass card effect */
-  .glass-card {
-    @apply bg-card/80 backdrop-blur-xl border border-border/50;
-    box-shadow: 
-      0 0 0 1px hsl(var(--border) / 0.3),
-      0 4px 24px -4px hsl(0 0% 0% / 0.3),
-      inset 0 1px 0 0 hsl(var(--foreground) / 0.02);
+  .shadow-card {
+    box-shadow: var(--shadow-card);
   }
 
-  /* Emerald glow effect */
-  .emerald-glow {
-    box-shadow: 
-      0 0 20px -5px hsl(var(--primary) / 0.4),
-      0 0 40px -10px hsl(var(--primary) / 0.2);
-  }
-
-  /* Monospace panel for logs/transcripts */
-  .mono-panel {
-    @apply font-mono text-sm bg-background/50 border border-border/50 rounded-lg p-4;
-    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
-  }
-
-  /* Stat card with subtle animation */
-  .stat-card {
-    @apply relative overflow-hidden bg-card border border-border rounded-xl p-6 transition-all duration-300;
-  }
-
-  .stat-card:hover {
-    @apply border-primary/30;
-    box-shadow: 0 0 30px -10px hsl(var(--primary) / 0.3);
-  }
-
-  .stat-card::before {
-    content: '';
-    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.05) 0%, transparent 50%);
-  }
-
-  .stat-card:hover::before {
-    @apply opacity-100;
-  }
-
-  /* Sidebar nav item */
   .nav-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground transition-all duration-200;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground transition-all duration-200 text-sm;
   }
-
   .nav-item:hover {
     @apply bg-sidebar-accent text-sidebar-accent-foreground;
   }
-
   .nav-item.active {
-    @apply bg-primary/10 text-primary;
+    background: hsl(var(--sidebar-primary) / 0.15);
+    color: hsl(var(--sidebar-primary));
+    border-left: 2px solid hsl(var(--sidebar-primary));
   }
 
-  /* Log entry */
-  .log-entry {
-    @apply flex items-start gap-4 py-3 px-4 border-b border-border/50 transition-colors;
+  .slide-over-backdrop {
+    @apply fixed inset-0 z-50 bg-black/25 backdrop-blur-sm;
+    animation: fadeIn 200ms ease-out;
+  }
+  .slide-over-panel {
+    @apply fixed right-0 top-0 z-50 h-full w-[560px] max-w-full bg-card border-l border-border overflow-y-auto;
+    animation: slideInRight 300ms ease;
   }
 
-  .log-entry:hover {
-    @apply bg-muted/30;
-  }
-
-  /* Status indicator */
-  .status-dot {
-    @apply w-2 h-2 rounded-full;
-  }
-
-  .status-dot.success {
-    @apply bg-primary;
-    box-shadow: 0 0 8px hsl(var(--primary) / 0.5);
-  }
-
-  .status-dot.warning {
-    background: hsl(38 92% 50%);
-    box-shadow: 0 0 8px hsl(38 92% 50% / 0.5);
-  }
-
-  .status-dot.error {
-    @apply bg-destructive;
-    box-shadow: 0 0 8px hsl(var(--destructive) / 0.5);
-  }
-
-  /* Gradient text */
-  .gradient-text {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--primary)) 100%);
-  }
-
-  /* Premium button glow */
-  .btn-glow {
-    @apply relative;
-  }
-
-  .btn-glow::after {
-    content: '';
-    @apply absolute inset-0 rounded-lg opacity-0 transition-opacity duration-300;
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.2) 0%, transparent 100%);
-    filter: blur(10px);
-    z-index: -1;
-  }
-
-  .btn-glow:hover::after {
-    @apply opacity-100;
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
 }
 
 @layer utilities {
-  /* Animation utilities */
-  .animate-glow {
-    animation: glow 2s ease-in-out infinite alternate;
-  }
-
-  @keyframes glow {
-    from {
-      box-shadow: 0 0 20px -10px hsl(var(--primary) / 0.5);
-    }
-    to {
-      box-shadow: 0 0 30px -5px hsl(var(--primary) / 0.7);
-    }
-  }
-
-  .animate-pulse-subtle {
-    animation: pulse-subtle 3s ease-in-out infinite;
-  }
-
-  @keyframes pulse-subtle {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.7;
-    }
-  }
-
-  /* Fade in animation */
   .fade-in {
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeIn 200ms ease-out;
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  /* Slide in from left */
-  .slide-in-left {
-    animation: slideInLeft 0.3s ease-out;
+  @keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
   }
 
-  @keyframes slideInLeft {
-    from {
-      opacity: 0;
-      transform: translateX(-20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
+  .pulse-live {
+    animation: pulseLive 2s ease-in-out infinite;
+  }
+  @keyframes pulseLive {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
 }
